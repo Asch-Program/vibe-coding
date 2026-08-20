@@ -14,7 +14,7 @@ export const userRoutes = new Elysia({ prefix: "/api" })
     }
   )
   .post(
-    "/login",
+    "/users/login",
     UserController.login,
     {
       body: t.Object({

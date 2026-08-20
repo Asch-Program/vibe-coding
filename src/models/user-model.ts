@@ -11,7 +11,7 @@ export interface LoginRequestBody {
 
 export interface BaseResponse<T = undefined> {
   status: "success" | "error";
-  message: string;
+  message?: string;
   data?: T;
 }
 
@@ -21,15 +21,6 @@ export interface RegisterResponseData {
   is_verified: boolean;
 }
 
-export interface UserSummary {
-  uuid: string;
-  name: string;
-  roles: string[];
-}
-
 export interface LoginResponseData {
-  access_token: string;
-  refresh_token: string;
-  expires_in: number;
-  user: UserSummary;
+  token: string;
 }

@@ -26,18 +26,17 @@ export class UserController {
     const result = await UserService.login(body);
 
     if (!result.success) {
-      set.status = 401;
+      set.status = 400;
       return {
         status: "error",
-        message: "Invalid credentials",
+        message: "Wrong Email or Password",
       };
     }
 
     set.status = 200;
     return {
       status: "success",
-      message: "Login successful",
-      data: result.data,
+      data: result.data.token,
     };
   }
 }
