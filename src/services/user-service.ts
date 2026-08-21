@@ -1,19 +1,14 @@
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
-import { users } from "../db/schema";
+import { users, sessions } from "../db/schema";
 import type {
   RegisterRequestBody,
   LoginRequestBody,
   RegisterResponseData,
   LoginResponseData,
 } from "../models/user-model";
-
-const JWT_SECRET = process.env.JWT_SECRET || "default-secret";
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "default-refresh-secret";
-const JWT_EXPIRES_IN = parseInt(process.env.JWT_EXPIRES_IN || "3600", 10);
 
 export class UserService {
   static async register(body: RegisterRequestBody): Promise<
@@ -56,7 +51,7 @@ export class UserService {
 
   static async login(body: LoginRequestBody): Promise<
     | { success: true; data: LoginResponseData }
-    | { success: false; error: "INVALID_CREDENTIALS" }
+    | { success: false; error: "WRONG_EMAIL_OR_PASSWORD" }
   > {
     const existingUsers = await db
       .select()
@@ -66,44 +61,26 @@ export class UserService {
 
     const user = existingUsers[0];
     if (!user) {
-      return { success: false, error: "INVALID_CREDENTIALS" };
+      return { success: false, error: "WRONG_EMAIL_OR_PASSWORD" };
     }
 
     const isPasswordValid = await bcrypt.compare(body.password, user.password);
 
     if (!isPasswordValid) {
-      return { success: false, error: "INVALID_CREDENTIALS" };
+      return { success: false, error: "WRONG_EMAIL_OR_PASSWORD" };
     }
 
-    const accessToken = jwt.sign(
-      {
-        uuid: user.uuid,
-        email: user.email,
-        roles: user.roles,
-      },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    );
+    const sessionToken = uuidv4();
 
-    const refreshToken = jwt.sign(
-      {
-        uuid: user.uuid,
-      },
-      JWT_REFRESH_SECRET,
-      { expiresIn: "7d" }
-    );
+    await db.insert(sessions).values({
+      token: sessionToken,
+      userId: user.id,
+    });
 
     return {
       success: true,
       data: {
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        expires_in: JWT_EXPIRES_IN,
-        user: {
-          uuid: user.uuid,
-          name: user.username,
-          roles: user.roles,
-        },
+        token: sessionToken,
       },
     };
   }
